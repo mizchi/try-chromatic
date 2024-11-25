@@ -1,50 +1,111 @@
-# React + TypeScript + Vite
+# My Chromatic Playground for VRT
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Storybook with Chromatic VRT (My) Workflow example.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Vite+React
+- storybook
+  - addons-coverage
+- chromatic
+  - VRT
 
-## Expanding the ESLint configuration
+## Setup
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+$ git clone https://github.com/mizchi/try-chromatic
+$ cd try-chromatic
+$ corepack enable pnpm
+$ pnpm install
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Try (your) chrmatic
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+- Create your chromatic account https://www.chromatic.com/
+- Local
+  - Put `.env`: `CHROMATIC_PROJECT_TOKEN=<your-key>`
+- CI
+  - `gh secret set CHROMATIC_PROJECT_TOKEN` and enter your key
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+## VRT on PR
+
+Example
+
+```yaml
+# .github/workflows/chromatic.yaml
+name: "Chromatic"
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'src/**/*.css'
+      - 'src/**/*.tsx'
+      - 'src/**/*.stories.tsx'
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.9.0+sha256.7a4261e50d9a44d9240baf6c9d6e10089dcf0a79d0007f2a26985a6927324177
+      - name: Use Node.js v22
+        uses: actions/setup-node@v4
+        with:
+          node-version: v22
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run Chromatic
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # Enable turbosnap to detect changed components
+          onlyChanged: true
+          exitZeroOnChanges: true
+          # autoAcceptChanges: true
 ```
+
+`git push origin your-branch`
+
+To reduce VRT check counts (to keep 5000/month), I reccomend `onlyChanged` options.
+
+## VRT with coverage (Local)
+
+```bash
+# Setup coverage
+$ pnpm exec playwright install
+$ pnpm exec playwright install-deps
+
+# Run local storybook
+$ pnpm dev:storybook
+# -----
+$ pnpm test:storybook:cov
+
+> test-storybook --url http://127.0.0.1:9009 --coverage
+
+ PASS   browser: chromium  src/Button.stories.tsx
+ PASS   browser: chromium  src/App.stories.tsx
+
+Test Suites: 2 passed, 2 total
+Tests:       3 passed, 3 total
+Snapshots:   0 total
+Time:        1.08 s
+Ran all test suites.
+Coverage file (7219 bytes) written to .nyc_output/coverage.json
+------------|---------|----------|---------|---------|-------------------
+File        | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------|---------|----------|---------|---------|-------------------
+All files   |   81.81 |      100 |      60 |   88.88 |                   
+ App.tsx    |      75 |      100 |      50 |   83.33 | 11                
+ Button.tsx |     100 |      100 |     100 |     100 |                   
+------------|---------|----------|---------|---------|-------------------
+```
+
+## LICENSE
+
+MIT

@@ -1,28 +1,27 @@
 name: "Chromatic"
-
 on:
-  push:
-    branches:
-      - main
-
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    paths:
+      - 'src/**/*.css'
+      - 'src/**/*.tsx'
+      - 'src/**/*.stories.tsx'
 jobs:
   build:
     runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        node-version: [20]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.9.0+sha256.7a4261e50d9a44d9240baf6c9d6e10089dcf0a79d0007f2a26985a6927324177
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js v22
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: v22
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install
@@ -30,3 +29,7 @@ jobs:
         uses: chromaui/action@latest
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # Enable turbosnap to detect changed components
+          onlyChanged: true
+          exitZeroOnChanges: true
+          # autoAcceptChanges: true
