@@ -1,20 +1,24 @@
 name: "Chromatic"
 
 on:
-  push:
-    branches:
-      - main
+  # push
+    # branches:
+    #   - main
+  pull_request:
+    # ref: ${{ github.event.pull_request.head.ref }}
+    # types: [opened, synchronize, reopened]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        node-version: [20]
+        node-version: [22]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -30,3 +34,6 @@ jobs:
         uses: chromaui/action@latest
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # Enable turbosnap to detect changed components
+          onlyChanged: true
+          exitZeroOnChanges: true
