@@ -37,3 +37,4 @@ jobs:
           # Enable turbosnap to detect changed components
           onlyChanged: true
           exitZeroOnChanges: true
+          # autoAcceptChanges: true
